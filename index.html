@@ -117,7 +117,7 @@ label{display:block;font-size:12px;color:var(--muted);margin:13px 0 6px}input,se
   <p class="small">※SafariからiCloud Driveへの自動同期ではありません。保存時にファイルアプリでiCloud Driveを選択してください。</p>
  </div>
  <div class="panel"><b>保存について</b><p class="small">通常の記録はこのiPhoneのブラウザ内に保存されます。JSONバックアップをiCloud Driveに保管することで、データの退避・復元ができます。</p><button class="secondary" onclick="exportCSV()">記録をCSVで書き出す</button><p class="small">大切な記録は定期的にバックアップしてください。</p></div>
- <div class="panel"><b>機能について</b><p class="small">写真による焙煎度合いの推定は実装済みです。写真の色味から端末内で推定する簡易判定で、照明や背景によって結果が変わることがあります。外部AIによる詳細分析は未実装です。</p></div>
+ <div class="panel"><b>機能について</b><p class="small">写真による焙煎度合いの推定は実装済みです。豆らしい茶色の部分を抽出し、影や背景の影響を抑える簡易判定です。照明・品種・表面の油分で結果が変わるため、目安として使用してください。外部AIによる詳細分析は未実装です。</p></div>
 </section>
 </main>
 <nav><button class="active" data-tab="home" onclick="show('home')">⌂<br>ホーム</button><button data-tab="entry" onclick="newRecord()">＋<br>記録</button><button data-tab="analysis" onclick="show('analysis')">◫<br>分析</button><button data-tab="settings" onclick="show('settings')">⚙<br>設定</button></nav>
@@ -234,11 +234,58 @@ function advice(r){let p=pct(r),s=[];if(p!==null)s.push(`今回の重量減少�
 
 const ROAST_LEVELS=['ライトロースト','シナモンロースト','ミディアムロースト','ハイロースト','シティロースト','フルシティロースト','フレンチロースト','イタリアンロースト'];
 let photoDataUrl='';
-function analyzeRoastPhoto(){let img=$('photoPreview');if(!img.naturalWidth){$('roastResult').textContent='先に焙煎豆の写真を選んでください。';return}let c=document.createElement('canvas'),ctx=c.getContext('2d',{willReadFrequently:true});let w=180,h=Math.round(180*img.naturalHeight/img.naturalWidth);if(h>180){h=180;w=Math.round(180*img.naturalWidth/img.naturalHeight)}c.width=w;c.height=h;ctx.drawImage(img,0,0,w,h);let d=ctx.getImageData(0,0,w,h).data,vals=[],reds=[],greens=[],blues=[];
- // 無地背景を避けるため、茶色寄りで一定以上暗い画素を豆候補として抽出
- for(let y=Math.floor(h*.12);y<Math.ceil(h*.88);y+=2)for(let x=Math.floor(w*.12);x<Math.ceil(w*.88);x+=2){let i=(y*w+x)*4,r=d[i],g=d[i+1],b=d[i+2],max=Math.max(r,g,b),min=Math.min(r,g,b),lum=.2126*r+.7152*g+.0722*b;if(lum>22&&lum<205&&r>=g*.88&&r>=b*1.02&&(max-min)>8){vals.push(lum);reds.push(r);greens.push(g);blues.push(b)}}
- if(vals.length<35){$('roastResult').textContent='豆の色を十分に読み取れませんでした。白〜グレーの無地の上に豆を広げ、明るい場所でもう一度撮影してください。';$('roastConfidence').textContent='判定できません';$('roastConfidence').dataset.value='';return}
- vals.sort((a,b)=>a-b);let median=vals[Math.floor(vals.length/2)],idx=median>=151?0:median>=137?1:median>=123?2:median>=109?3:median>=95?4:median>=80?5:median>=64?6:7;let spread=vals[Math.floor(vals.length*.8)]-vals[Math.floor(vals.length*.2)];let confidence=vals.length>500&&spread<48?'高め':vals.length>180&&spread<65?'中程度':'低め';let level=ROAST_LEVELS[idx];$('roastLevel').value=level;$('roastConfidence').textContent='写真からの推定確信度：'+confidence+'（参考値）';$('roastConfidence').dataset.value=confidence;$('roastResult').innerHTML=`推定結果：<strong>${level}</strong><br><span class="small">豆の色の明るさをもとにした簡易判定です。照明や背景で変わるため、必要なら下の選択欄で修正してください。</span>`;
+function analyzeRoastPhoto(){
+ let img=$('photoPreview');
+ if(!img.naturalWidth){
+  $('roastResult').textContent='先に焙煎豆の写真を選んでください。';
+  return;
+ }
+ let c=document.createElement('canvas'),ctx=c.getContext('2d',{willReadFrequently:true});
+ let scale=Math.min(1,320/Math.max(img.naturalWidth,img.naturalHeight));
+ let w=Math.max(1,Math.round(img.naturalWidth*scale)),h=Math.max(1,Math.round(img.naturalHeight*scale));
+ c.width=w;c.height=h;ctx.drawImage(img,0,0,w,h);
+ let d=ctx.getImageData(0,0,w,h).data,vals=[],hues=[];
+ let total=0;
+ // 豆らしい茶色系の画素を抽出。白・グレー背景や強い影の影響を抑える。
+ for(let y=Math.floor(h*.05);y<Math.ceil(h*.95);y+=2){
+  for(let x=Math.floor(w*.05);x<Math.ceil(w*.95);x+=2){
+   total++;
+   let i=(y*w+x)*4,r=d[i],g=d[i+1],b=d[i+2];
+   let max=Math.max(r,g,b),min=Math.min(r,g,b),delta=max-min;
+   let lum=.2126*r+.7152*g+.0722*b;
+   if(lum<30||lum>238||delta<10||r<g||g<b*.88)continue;
+   let hue=0;
+   if(delta>0){
+    if(max===r)hue=60*(((g-b)/delta)%6);
+    else if(max===g)hue=60*((b-r)/delta+2);
+    else hue=60*((r-g)/delta+4);
+   }
+   if(hue<0)hue+=360;
+   // コーヒー豆に多い赤〜黄褐色の範囲。極端な色や背景を除外。
+   if(hue<5||hue>48)continue;
+   vals.push(lum);hues.push(hue);
+  }
+ }
+ let coverage=total?vals.length/total:0;
+ if(vals.length<45||coverage<.025){
+  $('roastResult').textContent='豆の色を十分に読み取れませんでした。豆を重ねず、無地の白〜グレーの上に広げて、明るい場所で真上から撮影してください。';
+  $('roastConfidence').textContent='判定できません（写真条件を確認）';
+  $('roastConfidence').dataset.value='';
+  return;
+ }
+ vals.sort((a,b)=>a-b);
+ // 中央値より少し明るい位置を採用し、影や重なりによる「深煎り寄り」を抑える。
+ let sample=vals[Math.floor(vals.length*.60)];
+ let idx=sample>=166?0:sample>=151?1:sample>=137?2:sample>=123?3:sample>=109?4:sample>=94?5:sample>=78?6:7;
+ let p20=vals[Math.floor(vals.length*.20)],p80=vals[Math.floor(vals.length*.80)];
+ let spread=p80-p20;
+ let confidence=vals.length>700&&coverage>.18&&spread<42?'高め':
+                vals.length>250&&coverage>.08&&spread<62?'中程度':'低め';
+ let level=ROAST_LEVELS[idx];
+ $('roastLevel').value=level;
+ $('roastConfidence').textContent='写真からの推定確信度：'+confidence+'（参考値）';
+ $('roastConfidence').dataset.value=confidence;
+ $('roastResult').innerHTML=`推定結果：<strong>${level}</strong><br><span class="small">豆らしい茶色の部分を抽出し、影の影響を抑えて判定しています。写真の明るさ・豆の品種・表面の油分でも変わるため、最終的には目視で調整してください。</span>`;
 }
 async function previewBeanMasterPhotos(){let files=[...Array.from($('beanMasterPhoto').files||[]),...Array.from($('beanMasterCamera').files||[])];$('beanMasterPhotoPreview').innerHTML='';try{for(let f of files){let img=document.createElement('img');img.src=await compressPhoto(f);$('beanMasterPhotoPreview').appendChild(img)}}catch(err){alert('写真を読み込めませんでした')}}
 $('beanMasterPhoto').addEventListener('change',previewBeanMasterPhotos);
