@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#29251f">
+<link rel="manifest" href="manifest.webmanifest">
+<title>Roast Note</title>
+<style>
+:root{--bg:#f5f1e9;--paper:#fffdf8;--ink:#29251f;--muted:#82796d;--accent:#986b43;--line:#e8dfd2;--green:#496b52}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif}
+header{background:var(--ink);color:#fff;padding:22px 20px 18px;border-radius:0 0 24px 24px}
+.brand{font-size:12px;letter-spacing:.18em;color:#d8c7b2}.headrow{display:flex;align-items:center;justify-content:space-between;margin-top:8px}h1{font-family:Georgia,serif;font-size:30px;font-weight:500;margin:0}.sub{font-size:12px;color:#d1c7bb;margin-top:5px}
+main{max-width:680px;margin:auto;padding:18px 16px 100px}.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 20px}.stat,.panel,.record{background:var(--paper);border:1px solid var(--line);border-radius:17px;padding:15px}.stat strong{display:block;font:26px Georgia,serif}.stat span{font-size:11px;color:var(--muted)}
+.section{display:flex;justify-content:space-between;align-items:center;margin:22px 2px 10px}.section h2{font-size:16px;margin:0}.small{font-size:11px;color:var(--muted)}
+button{border:0;border-radius:12px;padding:12px 15px;background:var(--ink);color:white;font-weight:600;font-size:13px;cursor:pointer}.primary{width:100%;background:var(--accent);padding:15px}.secondary{background:#eee7dc;color:var(--ink)}
+.record{display:flex;gap:12px;margin-bottom:9px;align-items:center}.bean{width:48px;height:48px;border-radius:13px;background:#e8dccb;display:grid;place-items:center;font-size:24px}.record b{display:block;font-size:14px}.record p{margin:4px 0 0;color:var(--muted);font-size:11px}.record .right{margin-left:auto;text-align:right;font-size:11px;color:var(--green)}
+nav{position:fixed;bottom:0;left:0;right:0;background:#fffdf8ee;backdrop-filter:blur(12px);border-top:1px solid var(--line);display:flex;justify-content:space-around;padding:10px 5px calc(10px + env(safe-area-inset-bottom));z-index:5}
+nav button{background:transparent;color:var(--muted);padding:6px 12px;font-size:11px}nav button.active{color:var(--accent)}
+.view{display:none}.view.active{display:block}
+label{display:block;font-size:12px;color:var(--muted);margin:13px 0 6px}input,select,textarea{width:100%;padding:12px;border:1px solid var(--line);border-radius:11px;background:#fff;font:15px inherit;color:var(--ink)}textarea{min-height:76px;resize:vertical}.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.formgrid label{margin-top:8px}.formgrid input{margin-top:6px}
+.range{display:flex;align-items:center;gap:10px}.range input{padding:0}.range output{min-width:28px;text-align:right;font-weight:700}
+.actions{display:flex;gap:8px;margin-top:16px}.actions button{flex:1}
+.chip{display:inline-block;border-radius:20px;padding:5px 9px;background:#eee7dc;color:#6c5742;font-size:10px;margin:4px 3px 0 0}
+.advice{border-left:3px solid var(--accent);padding:10px 12px;background:#f2eadf;border-radius:0 10px 10px 0;font-size:13px;line-height:1.65}
+.empty{text-align:center;padding:30px 12px;color:var(--muted);font-size:13px}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+<header><div class="brand">YOUR PERSONAL ROASTING JOURNAL</div><div class="headrow"><h1>Roast Note</h1><span>☕</span></div><div class="sub">焙煎を記録して、好みの一杯へ。</div></header>
+<main>
+<section id="home" class="view active">
+ <div class="section"><h2>焙煎ダッシュボード</h2><span class="small" id="today"></span></div>
+ <div class="stats"><div class="stat"><strong id="count">0</strong><span>累計焙煎回数</span></div><div class="stat"><strong id="beans">0</strong><span>豆の種類</span></div></div>
+ <button class="primary" onclick="newRecord()">＋ 新しい焙煎を記録</button>
+ <div class="section"><h2>最近の焙煎</h2><span class="small">最新5件</span></div>
+ <div id="recent"></div>
+ <div class="section"><h2>Roast Noteからのヒント</h2></div>
+ <div class="panel"><div class="advice">焙煎条件だけでなく、試飲した日と味の印象も残すと、次回の改善につながります。まずは同じ豆で条件を少しずつ変えて比較してみましょう。</div></div>
+</section>
+<section id="entry" class="view">
+ <div class="section"><h2 id="formTitle">新しい焙煎を記録</h2><span class="small">ROAST LOG</span></div>
+ <div class="panel">
+ <label>焙煎日</label><input id="date" type="date">
+ <label>豆の名前・産地</label><input id="bean" placeholder="例：ケニア AA">
+ <div class="formgrid"><div><label>生豆重量 (g)</label><input id="green" type="number" step="0.1" placeholder="90"></div><div><label>焙煎後重量 (g)</label><input id="roasted" type="number" step="0.1" placeholder="78.8"></div></div>
+ <div class="formgrid"><div><label>温度設定</label><input id="temp" type="number" placeholder="7"></div><div><label>風力設定</label><input id="fan" type="number" placeholder="7"></div></div>
+ <div class="formgrid"><div><label>焙煎時間</label><input id="duration" placeholder="6分30秒"></div><div><label>1ハゼ開始</label><input id="first" placeholder="例：5分10秒"></div></div>
+ <label>1ハゼの様子</label><select id="crack"><option>未記録</option><option>少し聞こえた</option><option>明確に聞こえた</option><option>連続して聞こえた</option></select>
+ <label>香り・焙煎後の印象</label><textarea id="aroma" placeholder="例：香ばしい、甘い香り"></textarea>
+ <div class="formgrid"><div><label>酸味 (1〜5)</label><input id="acidity" type="number" min="1" max="5" value="3"></div><div><label>苦味 (1〜5)</label><input id="bitterness" type="number" min="1" max="5" value="3"></div><div><label>甘み (1〜5)</label><input id="sweetness" type="number" min="1" max="5" value="3"></div><div><label>コク (1〜5)</label><input id="body" type="number" min="1" max="5" value="3"></div></div>
+ <label>試飲メモ</label><textarea id="notes" placeholder="抽出条件や味の感想、次回試したいこと"></textarea>
+ <div class="small" id="loss">重量減少率：—</div>
+ <div class="actions"><button class="secondary" onclick="show('home')">戻る</button><button onclick="saveRecord()">記録を保存</button></div>
+ </div>
+</section>
+<section id="analysis" class="view">
+ <div class="section"><h2>焙煎分析</h2><span class="small">ROAST INSIGHTS</span></div>
+ <div class="panel"><h3 style="margin-top:0;font-size:15px">重量減少率</h3><div id="lossSummary" class="advice">記録が増えると、重量減少率の傾向を確認できます。</div></div>
+ <div class="section"><h2>AI改善アドバイス（試作）</h2></div>
+ <div class="panel"><div id="aiAdvice" class="advice">焙煎記録を保存すると、入力内容をもとに簡易アドバイスを表示します。現段階では外部AIには接続していません。</div><p class="small">※これはルールベースの試作コメントです。実際のAI分析では、豆の情報・焙煎経過・試飲評価をまとめて分析する予定です。</p></div>
+ <div class="section"><h2>記録一覧</h2></div><div id="allRecords"></div>
+</section>
+<section id="settings" class="view">
+ <div class="section"><h2>設定・データ</h2></div>
+ <div class="panel"><b>保存について</b><p class="small">現在の試作版は、このiPhoneのブラウザ内にデータを保存します。iCloud同期はまだ接続していません。</p><button class="secondary" onclick="exportCSV()">記録をCSVで書き出す</button><p class="small">大切な記録は定期的に書き出して保管してください。</p></div>
+ <div class="panel"><b>今後の実装予定</b><p class="small">CloudKit連携、写真保存、AIサービス接続、データの復元・同期。</p></div>
+</section>
+</main>
+<nav><button class="active" data-tab="home" onclick="show('home')">⌂<br>ホーム</button><button data-tab="entry" onclick="newRecord()">＋<br>記録</button><button data-tab="analysis" onclick="show('analysis')">◫<br>分析</button><button data-tab="settings" onclick="show('settings')">⚙<br>設定</button></nav>
+<script>
+const KEY='roast-note-records-v1';let records=JSON.parse(localStorage.getItem(KEY)||'[]');let editing=null;
+const $=id=>document.getElementById(id);
+$('today').textContent=new Date().toLocaleDateString('ja-JP',{month:'long',day:'numeric'});
+function show(id){document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id===id));document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.tab===id));if(id==='home'||id==='analysis')render()}
+function newRecord(){editing=null;$('formTitle').textContent='新しい焙煎を記録';['bean','green','roasted','temp','fan','duration','first','aroma','notes'].forEach(x=>$(x).value='');$('date').value=new Date().toISOString().slice(0,10);$('crack').value='未記録';['acidity','bitterness','sweetness','body'].forEach(x=>$(x).value=3);show('entry')}
+function saveRecord(){let bean=$('bean').value.trim();if(!bean){alert('豆の名前を入力してください');return}let r={id:editing||Date.now(),date:$('date').value,bean,green:+$('green').value||0,roasted:+$('roasted').value||0,temp:$('temp').value,fan:$('fan').value,duration:$('duration').value,first:$('first').value,crack:$('crack').value,aroma:$('aroma').value,acidity:+$('acidity').value,bitterness:+$('bitterness').value,sweetness:+$('sweetness').value,body:+$('body').value,notes:$('notes').value};let i=records.findIndex(x=>x.id===r.id);if(i>=0)records[i]=r;else records.unshift(r);localStorage.setItem(KEY,JSON.stringify(records));show('home')}
+function pct(r){return r.green>0&&r.roasted>0?((r.green-r.roasted)/r.green*100):null}
+function card(r){let p=pct(r);return `<div class="record"><div class="bean">☕</div><div><b>${esc(r.bean)}</b><p>${esc(r.date||'日付なし')} ・ ${r.green||'—'}g → ${r.roasted||'—'}g</p><p>温度 ${esc(r.temp||'—')} / 風力 ${esc(r.fan||'—')} ・ ${esc(r.duration||'時間未入力')}</p></div><div class="right">${p===null?'—':p.toFixed(1)+'%'}<br><span class="small">減少率</span></div></div>`}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function render(){$('count').textContent=records.length;$('beans').textContent=new Set(records.map(r=>r.bean)).size;$('recent').innerHTML=records.length?records.slice(0,5).map(card).join(''):'<div class="empty">まだ記録がありません。最初の焙煎を残してみましょう。</div>';$('allRecords').innerHTML=records.length?records.map(card).join(''):'<div class="empty">記録がありません</div>';let valid=records.map(pct).filter(x=>x!==null);$('lossSummary').textContent=valid.length?`記録 ${valid.length} 件の平均重量減少率は ${ (valid.reduce((a,b)=>a+b,0)/valid.length).toFixed(1)}% です。豆の種類や焙煎条件をそろえて比較すると、より参考になります。`:'重量を入力した記録がまだありません。';let latest=records[0];$('aiAdvice').textContent=latest?advice(latest):'まずは焙煎記録を保存してください。'}
+function advice(r){let p=pct(r),s=[];if(p!==null)s.push(`今回の重量減少率は${p.toFixed(1)}%です。`);if(!r.first)s.push('次回は1ハゼ開始時間も記録すると、焙煎の進み方を比較しやすくなります。');if(r.acidity>=4)s.push('酸味が高めの評価です。次回は他の条件を固定し、焙煎時間などを一つだけ変えて味の変化を確認しましょう。');if(r.bitterness>=4)s.push('苦味が高めの評価です。投入量・焙煎時間・火力の記録を揃え、条件を一つずつ比較するのがおすすめです。');if(s.length===1)s.push('同じ豆で条件を一つずつ変え、試飲結果とセットで比較してみましょう。');return s.join(' ')}
+function exportCSV(){let cols=['date','bean','green','roasted','temp','fan','duration','first','crack','aroma','acidity','bitterness','sweetness','body','notes'];let csv=[cols.join(','),...records.map(r=>cols.map(k=>'"'+String(r[k]??'').replace(/"/g,'""')+'"').join(','))].join('\n');let a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv'}));a.download='roast-note-records.csv';a.click();URL.revokeObjectURL(a.href)}
+['green','roasted'].forEach(id=>$(id).addEventListener('input',()=>{let g=+$('green').value,r=+$('roasted').value;$('loss').textContent=g>0&&r>0?'重量減少率：'+((g-r)/g*100).toFixed(1)+'%':'重量減少率：—'}));
+render();
+if('serviceWorker' in navigator && location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js').catch(()=>{});
+</script>
+</body></html>
