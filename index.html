@@ -73,6 +73,14 @@ label{display:block;font-size:12px;color:var(--muted);margin:13px 0 6px}input,se
 <section id="analysis" class="view">
  <div class="section"><h2>焙煎分析</h2><span class="small">ROAST INSIGHTS</span></div>
  <div class="panel"><h3 style="margin-top:0;font-size:15px">重量減少率</h3><div id="lossSummary" class="advice">記録が増えると、重量減少率の傾向を確認できます。</div></div>
+ <div class="section"><h2>焙煎結果を比較</h2><span class="small">COMPARE</span></div>
+ <div class="panel">
+  <p class="small">比較したい焙煎記録を2つ選んでください。同じ生豆の記録を比べると、条件や味の違いが分かりやすくなります。</p>
+  <label>比較する記録①</label><select id="compareA"><option value="">記録を選択</option></select>
+  <label>比較する記録②</label><select id="compareB"><option value="">記録を選択</option></select>
+  <button class="primary" style="margin-top:12px" onclick="compareRecords()">この2件を比較する</button>
+  <div id="compareResult" style="margin-top:14px"><p class="small">記録を2つ選ぶと、焙煎条件と試飲評価を並べて比較できます。</p></div>
+ </div>
  <div class="section"><h2>AI改善アドバイス（試作）</h2></div>
  <div class="panel"><div id="aiAdvice" class="advice">焙煎記録を保存すると、入力内容をもとに簡易アドバイスを表示します。現段階では外部AIには接続していません。</div><p class="small">※これはルールベースの試作コメントです。実際のAI分析では、豆の情報・焙煎経過・試飲評価をまとめて分析する予定です。</p></div>
  <div class="section"><h2>記録一覧</h2></div><p class="small">記録をタップすると、試飲メモを含む詳細を確認できます。</p><div id="allRecords"></div>
@@ -152,7 +160,39 @@ function card(r){let p=pct(r),id=JSON.stringify(String(r.id));return `<div class
 async function openRecord(id){let r=records.find(x=>String(x.id)===String(id));if(!r)return;let p=pct(r),stars=r.favorite?'★'.repeat(Number(r.favorite))+'☆'.repeat(5-Number(r.favorite)):'未評価';let master=beanMasters.find(b=>b.name===r.bean)||{};let rows=[['焙煎日',r.date],['生豆',r.bean],['購入ショップ',r.beanShop||master.shop],['産地・品種', [master.origin,master.variety].filter(Boolean).join(' / ')],['精製方法',master.process],['生豆重量',r.green? r.green+' g':'未記録'],['焙煎後重量',r.roasted?r.roasted+' g':'未記録'],['重量減少率',p===null?'未計算':p.toFixed(1)+'%'],['温度設定',r.temp],['風量設定',r.fan],['焙煎時間',r.duration],['1ハゼ開始',r.first],['1ハゼの様子',r.crack],['焙煎度合い',r.roastLevel],['写真判定の確信度',r.roastConfidence],['香り・印象',r.aroma],['酸味',r.acidity],['苦味',r.bitterness],['甘み',r.sweetness],['コク',r.body],['お気に入り度',stars]];$('recordDetail').innerHTML=rows.filter(x=>x[1]!==undefined&&x[1]!==null&&x[1]!=='').map(x=>`<div class="detail-row"><b>${esc(x[0])}</b><span>${esc(x[1])}</span></div>`).join('')+`<div class="detail-notes"><b>焙煎後の写真</b></div>`+((await getPhoto('record:'+r.id))?`<img class="saved-photo" src="${await getPhoto('record:'+r.id)}" alt="焙煎後の豆">`:'<p class="small">写真は登録されていません。</p>')+`<div class="detail-notes"><b>生豆の写真</b></div>`+((await getPhoto('bean:'+r.bean))?`<img class="saved-photo" src="${await getPhoto('bean:'+r.bean)}" alt="焙煎前の生豆">`:'<p class="small">生豆写真は登録されていません。</p>')+`<div class="detail-notes"><b>試飲メモ</b><p>${r.notes?esc(r.notes).replace(/\n/g,'<br>'):'メモは入力されていません。'}</p></div><div class="actions"><button onclick='editRecord(${JSON.stringify(String(r.id))})'>この記録を編集</button><button class="secondary" onclick='deleteRecord(${JSON.stringify(String(r.id))})'>この記録を削除</button></div>`;show('detail')}
 async function deleteRecord(id){let r=records.find(x=>String(x.id)===String(id));if(!r)return;if(!confirm(`「${r.bean}」の${r.date||'焙煎記録'}を削除しますか？\nこの操作は取り消せません。`))return;records=records.filter(x=>String(x.id)!==String(id));try{await deletePhoto('record:'+r.id)}catch(e){}localStorage.setItem(KEY,JSON.stringify(records));editing=null;render();show('home');alert('焙煎記録を削除しました。')}
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function render(){$('count').textContent=records.length;$('beans').textContent=new Set(records.map(r=>r.bean)).size;$('recent').innerHTML=records.length?records.slice(0,5).map(card).join(''):'<div class="empty">まだ記録がありません。最初の焙煎を残してみましょう。</div>';$('allRecords').innerHTML=records.length?records.map(card).join(''):'<div class="empty">記録がありません</div>';let valid=records.map(pct).filter(x=>x!==null);$('lossSummary').textContent=valid.length?`記録 ${valid.length} 件の平均重量減少率は ${ (valid.reduce((a,b)=>a+b,0)/valid.length).toFixed(1)}% です。豆の種類や焙煎条件をそろえて比較すると、より参考になります。`:'重量を入力した記録がまだありません。';let latest=records[0];$('aiAdvice').textContent=latest?advice(latest):'まずは焙煎記録を保存してください。'}
+
+function renderCompareOptions(){
+ let a=$('compareA'),b=$('compareB');if(!a||!b)return;
+ let oldA=a.value,oldB=b.value;
+ let options='<option value="">記録を選択</option>'+records.map(r=>`<option value="${esc(r.id)}">${esc(r.date||'日付なし')}｜${esc(r.bean)}｜${esc(r.roastLevel||'焙煎度未設定')}｜${r.green||'—'}g→${r.roasted||'—'}g</option>`).join('');
+ a.innerHTML=options;b.innerHTML=options;
+ if(records.some(r=>String(r.id)===oldA))a.value=oldA;
+ if(records.some(r=>String(r.id)===oldB))b.value=oldB;
+ if(!a.value&&records.length)a.value=String(records[0].id);
+ if(!b.value&&records.length>1)b.value=String(records.find(r=>String(r.id)!==a.value)?.id||'');
+}
+function compareRecords(){
+ let a=records.find(r=>String(r.id)===$('compareA').value);
+ let b=records.find(r=>String(r.id)===$('compareB').value);
+ if(!a||!b){$('compareResult').innerHTML='<p class="small">比較する記録を2つ選んでください。</p>';return}
+ if(String(a.id)===String(b.id)){$('compareResult').innerHTML='<p class="small">別々の記録を選んでください。</p>';return}
+ let fields=[
+  ['生豆',r=>r.bean],['焙煎日',r=>r.date||'未記録'],
+  ['生豆重量',r=>r.green?`${r.green} g`:'未記録'],['焙煎後重量',r=>r.roasted?`${r.roasted} g`:'未記録'],
+  ['重量減少率',r=>pct(r)===null?'未計算':`${pct(r).toFixed(1)}%`],
+  ['温度設定',r=>r.temp||'未記録'],['風量設定',r=>r.fan||'未記録'],
+  ['焙煎時間',r=>r.duration||'未記録'],['1ハゼ開始',r=>r.first||'未記録'],
+  ['焙煎度合い',r=>r.roastLevel||'未記録'],['香り・印象',r=>r.aroma||'未記録'],
+  ['酸味',r=>r.acidity??'未記録'],['苦味',r=>r.bitterness??'未記録'],
+  ['甘み',r=>r.sweetness??'未記録'],['コク',r=>r.body??'未記録'],
+  ['お気に入り度',r=>r.favorite?`${r.favorite} / 5`:'未評価'],['試飲メモ',r=>r.notes||'未記録']
+ ];
+ let html=`<div class="advice" style="margin-bottom:12px">${a.bean===b.bean?'同じ生豆の記録です。焙煎条件や評価の違いを比べてみましょう。':'異なる生豆の記録です。豆の違いも結果に影響するため、参考比較として見てください。'}</div><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr><th style="text-align:left;padding:9px;border-bottom:1px solid var(--line)">項目</th><th style="text-align:left;padding:9px;border-bottom:1px solid var(--line)">① ${esc(a.date||'記録①')}</th><th style="text-align:left;padding:9px;border-bottom:1px solid var(--line)">② ${esc(b.date||'記録②')}</th></tr></thead><tbody>`;
+ html+=fields.map(([label,get])=>`<tr><th style="text-align:left;vertical-align:top;padding:9px;border-bottom:1px solid var(--line);color:var(--muted)">${esc(label)}</th><td style="vertical-align:top;padding:9px;border-bottom:1px solid var(--line);white-space:pre-wrap">${esc(get(a))}</td><td style="vertical-align:top;padding:9px;border-bottom:1px solid var(--line);white-space:pre-wrap">${esc(get(b))}</td></tr>`).join('');
+ $('compareResult').innerHTML=html+'</tbody></table></div>';
+}
+
+function render(){renderCompareOptions();$('count').textContent=records.length;$('beans').textContent=new Set(records.map(r=>r.bean)).size;$('recent').innerHTML=records.length?records.slice(0,5).map(card).join(''):'<div class="empty">まだ記録がありません。最初の焙煎を残してみましょう。</div>';$('allRecords').innerHTML=records.length?records.map(card).join(''):'<div class="empty">記録がありません</div>';let valid=records.map(pct).filter(x=>x!==null);$('lossSummary').textContent=valid.length?`記録 ${valid.length} 件の平均重量減少率は ${ (valid.reduce((a,b)=>a+b,0)/valid.length).toFixed(1)}% です。豆の種類や焙煎条件をそろえて比較すると、より参考になります。`:'重量を入力した記録がまだありません。';let latest=records[0];$('aiAdvice').textContent=latest?advice(latest):'まずは焙煎記録を保存してください。'}
 function advice(r){let p=pct(r),s=[];if(p!==null)s.push(`今回の重量減少率は${p.toFixed(1)}%です。`);if(!r.first)s.push('次回は1ハゼ開始時間も記録すると、焙煎の進み方を比較しやすくなります。');if(r.acidity>=4)s.push('酸味が高めの評価です。次回は他の条件を固定し、焙煎時間などを一つだけ変えて味の変化を確認しましょう。');if(r.bitterness>=4)s.push('苦味が高めの評価です。投入量・焙煎時間・火力の記録を揃え、条件を一つずつ比較するのがおすすめです。');if(s.length===1)s.push('同じ豆で条件を一つずつ変え、試飲結果とセットで比較してみましょう。');return s.join(' ')}
 
 const ROAST_LEVELS=['ライトロースト','シナモンロースト','ミディアムロースト','ハイロースト','シティロースト','フルシティロースト','フレンチロースト','イタリアンロースト'];
