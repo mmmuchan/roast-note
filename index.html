@@ -25,6 +25,10 @@ label{display:block;font-size:12px;color:var(--muted);margin:13px 0 6px}input,se
 .advice{border-left:3px solid var(--accent);padding:10px 12px;background:#f2eadf;border-radius:0 10px 10px 0;font-size:13px;line-height:1.65}
 .empty{text-align:center;padding:30px 12px;color:var(--muted);font-size:13px}
 .hidden{display:none!important}
+.backup-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px}
+.backup-actions button{width:100%}
+#backupFile{display:none}
+.tappable{cursor:pointer;transition:transform .12s}.tappable:active{transform:scale(.99)}.detail-row{display:flex;justify-content:space-between;gap:14px;padding:11px 0;border-bottom:1px solid var(--line);font-size:13px}.detail-row b{color:var(--muted);font-weight:600;min-width:112px}.detail-row span{text-align:right;white-space:pre-wrap;overflow-wrap:anywhere}.detail-notes{padding-top:16px;font-size:13px}.detail-notes p{white-space:pre-wrap;line-height:1.7;margin:8px 0 0}.bean-master-list{display:grid;gap:8px;margin-top:12px}.bean-master-item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px;background:#f5f1e9;border-radius:10px;font-size:13px}.bean-master-item button{padding:7px 10px;font-size:11px}.photo-box{margin-top:12px;padding:12px;background:#f5f1e9;border-radius:12px}.photo-preview{display:none;width:100%;max-height:220px;object-fit:contain;border-radius:10px;margin-top:10px;background:#fff}.roast-result{margin-top:10px;padding:12px;border-radius:10px;background:#eee7dc;line-height:1.6}.roast-result strong{font-size:18px}.field-note{font-size:10px;color:var(--muted);margin-top:5px}.formgrid select{margin-top:6px}
 </style>
 </head>
 <body>
@@ -43,47 +47,118 @@ label{display:block;font-size:12px;color:var(--muted);margin:13px 0 6px}input,se
  <div class="section"><h2 id="formTitle">新しい焙煎を記録</h2><span class="small">ROAST LOG</span></div>
  <div class="panel">
  <label>焙煎日</label><input id="date" type="date">
- <label>豆の名前・産地</label><input id="bean" placeholder="例：ケニア AA">
- <div class="formgrid"><div><label>生豆重量 (g)</label><input id="green" type="number" step="0.1" placeholder="90"></div><div><label>焙煎後重量 (g)</label><input id="roasted" type="number" step="0.1" placeholder="78.8"></div></div>
- <div class="formgrid"><div><label>温度設定</label><input id="temp" type="number" placeholder="7"></div><div><label>風力設定</label><input id="fan" type="number" placeholder="7"></div></div>
- <div class="formgrid"><div><label>焙煎時間</label><input id="duration" placeholder="6分30秒"></div><div><label>1ハゼ開始</label><input id="first" placeholder="例：5分10秒"></div></div>
+ <label>生豆（登録済みから選択）</label><select id="bean"><option value="">生豆を選択してください</option></select><p class="field-note">生豆の追加・編集は「設定」からできます。</p>
+ <div class="formgrid"><div><label>生豆重量 (g)</label><select id="green"></select><input id="greenCustom" type="number" step="0.1" placeholder="重量を入力" class="hidden"></div><div><label>焙煎後重量 (g)</label><select id="roasted"></select><input id="roastedCustom" type="number" step="0.1" placeholder="重量を入力" class="hidden"></div></div>
+ <div class="formgrid"><div><label>温度設定</label><select id="temp"></select></div><div><label>風量設定</label><select id="fan"></select></div></div>
+ <div class="formgrid"><div><label>焙煎時間</label><select id="duration"></select></div><div><label>1ハゼ開始</label><select id="first"></select></div></div>
+ <label>焙煎度合い（写真から推定）</label>
+ <div class="photo-box"><input id="roastPhoto" type="file" accept="image/*" capture="environment"><p class="field-note">豆を白〜グレーの無地の上に広げ、明るい場所で真上から撮影してください。写真は端末内で解析し、外部には送信しません。</p><img id="photoPreview" class="photo-preview" alt="焙煎豆の写真"><div id="roastResult" class="roast-result">写真を選ぶと焙煎度合いを推定します。</div><button type="button" class="secondary" id="reanalyzePhoto">写真を再判定</button></div>
+ <select id="roastLevel"><option value="">焙煎度合いを選択</option><option>ライトロースト</option><option>シナモンロースト</option><option>ミディアムロースト</option><option>ハイロースト</option><option>シティロースト</option><option>フルシティロースト</option><option>フレンチロースト</option><option>イタリアンロースト</option></select>
+ <p class="field-note" id="roastConfidence">写真判定後に確信度を表示します。</p>
  <label>1ハゼの様子</label><select id="crack"><option>未記録</option><option>少し聞こえた</option><option>明確に聞こえた</option><option>連続して聞こえた</option></select>
  <label>香り・焙煎後の印象</label><textarea id="aroma" placeholder="例：香ばしい、甘い香り"></textarea>
  <div class="formgrid"><div><label>酸味 (1〜5)</label><input id="acidity" type="number" min="1" max="5" value="3"></div><div><label>苦味 (1〜5)</label><input id="bitterness" type="number" min="1" max="5" value="3"></div><div><label>甘み (1〜5)</label><input id="sweetness" type="number" min="1" max="5" value="3"></div><div><label>コク (1〜5)</label><input id="body" type="number" min="1" max="5" value="3"></div></div>
+ <label>お気に入り度</label><select id="favorite"><option value="">未評価</option><option value="1">★☆☆☆☆（1）</option><option value="2">★★☆☆☆（2）</option><option value="3">★★★☆☆（3）</option><option value="4">★★★★☆（4）</option><option value="5">★★★★★（5）</option></select>
  <label>試飲メモ</label><textarea id="notes" placeholder="抽出条件や味の感想、次回試したいこと"></textarea>
  <div class="small" id="loss">重量減少率：—</div>
  <div class="actions"><button class="secondary" onclick="show('home')">戻る</button><button onclick="saveRecord()">記録を保存</button></div>
  </div>
+</section>
+<section id="detail" class="view">
+ <div class="section"><h2>焙煎記録の詳細</h2><span class="small">ROAST DETAIL</span></div>
+ <div class="panel" id="recordDetail"></div>
+ <div class="actions"><button class="secondary" onclick="show('analysis')">記録一覧へ戻る</button><button onclick="show('home')">ホームへ</button></div>
 </section>
 <section id="analysis" class="view">
  <div class="section"><h2>焙煎分析</h2><span class="small">ROAST INSIGHTS</span></div>
  <div class="panel"><h3 style="margin-top:0;font-size:15px">重量減少率</h3><div id="lossSummary" class="advice">記録が増えると、重量減少率の傾向を確認できます。</div></div>
  <div class="section"><h2>AI改善アドバイス（試作）</h2></div>
  <div class="panel"><div id="aiAdvice" class="advice">焙煎記録を保存すると、入力内容をもとに簡易アドバイスを表示します。現段階では外部AIには接続していません。</div><p class="small">※これはルールベースの試作コメントです。実際のAI分析では、豆の情報・焙煎経過・試飲評価をまとめて分析する予定です。</p></div>
- <div class="section"><h2>記録一覧</h2></div><div id="allRecords"></div>
+ <div class="section"><h2>記録一覧</h2></div><p class="small">記録をタップすると、試飲メモを含む詳細を確認できます。</p><div id="allRecords"></div>
 </section>
 <section id="settings" class="view">
  <div class="section"><h2>設定・データ</h2></div>
- <div class="panel"><b>保存について</b><p class="small">現在の試作版は、このiPhoneのブラウザ内にデータを保存します。iCloud同期はまだ接続していません。</p><button class="secondary" onclick="exportCSV()">記録をCSVで書き出す</button><p class="small">大切な記録は定期的に書き出して保管してください。</p></div>
- <div class="panel"><b>今後の実装予定</b><p class="small">CloudKit連携、写真保存、AIサービス接続、データの復元・同期。</p></div>
+ <div class="panel">
+  <b>生豆マスター</b>
+  <p class="small">よく使う生豆を登録しておけば、焙煎記録では選ぶだけで入力できます。</p>
+  <label>豆の名前（必須）</label><input id="beanMasterName" placeholder="例：ケニア AA">
+  <div class="formgrid"><div><label>産地</label><input id="beanMasterOrigin" placeholder="例：ケニア"></div><div><label>品種</label><input id="beanMasterVariety" placeholder="例：SL28"></div></div>
+  <label>購入したショップ</label><input id="beanMasterShop" placeholder="例：〇〇コーヒー、オンラインショップ"><label>精製方法</label><select id="beanMasterProcess"><option value="">未設定</option><option>ウォッシュド</option><option>ナチュラル</option><option>ハニー</option><option>アナエロビック</option><option>その他</option></select>
+  <button style="margin-top:12px" onclick="saveBeanMaster()">生豆を登録</button>
+  <div id="beanMasterList" class="bean-master-list"></div>
+ </div>
+ <div class="panel">
+  <b>バックアップ・復元</b>
+  <p class="small">焙煎記録をJSONファイルにして保存できます。「ファイル」アプリで保存先にiCloud Driveを選んでください。復元はiCloud Drive内のバックアップファイルを選択します。</p>
+  <div class="backup-actions">
+   <button onclick="backupJSON()">iCloudにバックアップ</button>
+   <button class="secondary" onclick="document.getElementById('backupFile').click()">バックアップから復元</button>
+  </div>
+  <input id="backupFile" type="file" accept=".json,application/json">
+  <p class="small" id="backupStatus">バックアップ日時：まだありません</p>
+  <p class="small">※SafariからiCloud Driveへの自動同期ではありません。保存時にファイルアプリでiCloud Driveを選択してください。</p>
+ </div>
+ <div class="panel"><b>保存について</b><p class="small">通常の記録はこのiPhoneのブラウザ内に保存されます。JSONバックアップをiCloud Driveに保管することで、データの退避・復元ができます。</p><button class="secondary" onclick="exportCSV()">記録をCSVで書き出す</button><p class="small">大切な記録は定期的にバックアップしてください。</p></div>
+ <div class="panel"><b>今後の実装予定</b><p class="small">写真による焙煎度合いの推定は端末内で実行します。</p></div>
 </section>
 </main>
 <nav><button class="active" data-tab="home" onclick="show('home')">⌂<br>ホーム</button><button data-tab="entry" onclick="newRecord()">＋<br>記録</button><button data-tab="analysis" onclick="show('analysis')">◫<br>分析</button><button data-tab="settings" onclick="show('settings')">⚙<br>設定</button></nav>
 <script>
-const KEY='roast-note-records-v1';let records=JSON.parse(localStorage.getItem(KEY)||'[]');let editing=null;
+const KEY='roast-note-records-v1';
+const BACKUP_KEY='roast-note-last-backup-v1';
+let records=[];
+try{records=JSON.parse(localStorage.getItem(KEY)||'[]');if(!Array.isArray(records))records=[]}catch(e){records=[]}
+let editing=null;
+const BEANS_KEY='roast-note-bean-master-v1';
+let beanMasters=[];
+try{beanMasters=JSON.parse(localStorage.getItem(BEANS_KEY)||'[]');if(!Array.isArray(beanMasters))beanMasters=[]}catch(e){beanMasters=[]}
+// 既存記録にある豆名はマスターへ引き継ぎ、過去データをそのまま使えるようにする
+records.forEach(r=>{if(r.bean&&!beanMasters.some(b=>b.name===r.bean))beanMasters.push({id:'legacy-'+r.bean,name:r.bean,origin:'',variety:'',process:''})});
+localStorage.setItem(BEANS_KEY,JSON.stringify(beanMasters));
 const $=id=>document.getElementById(id);
 $('today').textContent=new Date().toLocaleDateString('ja-JP',{month:'long',day:'numeric'});
-function show(id){document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id===id));document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.tab===id));if(id==='home'||id==='analysis')render()}
-function newRecord(){editing=null;$('formTitle').textContent='新しい焙煎を記録';['bean','green','roasted','temp','fan','duration','first','aroma','notes'].forEach(x=>$(x).value='');$('date').value=new Date().toISOString().slice(0,10);$('crack').value='未記録';['acidity','bitterness','sweetness','body'].forEach(x=>$(x).value=3);show('entry')}
-function saveRecord(){let bean=$('bean').value.trim();if(!bean){alert('豆の名前を入力してください');return}let r={id:editing||Date.now(),date:$('date').value,bean,green:+$('green').value||0,roasted:+$('roasted').value||0,temp:$('temp').value,fan:$('fan').value,duration:$('duration').value,first:$('first').value,crack:$('crack').value,aroma:$('aroma').value,acidity:+$('acidity').value,bitterness:+$('bitterness').value,sweetness:+$('sweetness').value,body:+$('body').value,notes:$('notes').value};let i=records.findIndex(x=>x.id===r.id);if(i>=0)records[i]=r;else records.unshift(r);localStorage.setItem(KEY,JSON.stringify(records));show('home')}
+function show(id){document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id===id));document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.tab===id));if(id==='home'||id==='analysis')render();if(id==='settings'){renderBackupStatus();renderBeanMasters()}}
+function fillSelect(id,values,placeholder='選択してください'){let el=$(id);if(!el)return;el.innerHTML=`<option value="">${placeholder}</option>`+values.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('')}
+function setupPickers(){
+ fillSelect('green',[50,60,70,80,90,100,120,150,180,200,'その他']);fillSelect('roasted',[40,50,60,70,80,90,100,120,150,'その他']);
+ fillSelect('temp',[1,2,3,4,5,6,7,8,9,10]);fillSelect('fan',[1,2,3,4,5,6,7,8,9,10]);
+ let times=[];for(let m=3;m<=15;m++)for(let sec of [0,30]){if(m===15&&sec===30)continue;times.push(`${m}分${sec?'30秒':'00秒'}`)}
+ fillSelect('duration',times,'焙煎時間を選択');fillSelect('first',times,'未記録');
+ ['green','roasted'].forEach(id=>$(id).addEventListener('change',()=>$(id+'Custom').classList.toggle('hidden',$(id).value!=='その他')));
+}
+function refreshBeanSelect(selected=''){let el=$('bean');el.innerHTML='<option value="">生豆を選択してください</option>'+beanMasters.map(b=>`<option value="${esc(b.name)}">${esc(b.name)}${b.origin?'（'+esc(b.origin)+'）':''}</option>`).join('');if(selected)el.value=selected}
+function renderBeanMasters(){$('beanMasterList').innerHTML=beanMasters.length?beanMasters.map((b,i)=>`<div class="bean-master-item"><span><b>${esc(b.name)}</b><br><small>${esc([b.origin,b.variety,b.process,b.shop?'購入先：'+b.shop:''].filter(Boolean).join(' ・ ')||'詳細未設定')}</small></span><button class="secondary" onclick="deleteBeanMaster(${i})">削除</button></div>`).join(''):'<p class="small">まだ生豆が登録されていません。</p>'}
+function saveBeanMaster(){let name=$('beanMasterName').value.trim();if(!name){alert('豆の名前を入力してください');return}let item={id:'bean-'+Date.now(),name,origin:$('beanMasterOrigin').value.trim(),variety:$('beanMasterVariety').value.trim(),process:$('beanMasterProcess').value,shop:$('beanMasterShop').value.trim()};let i=beanMasters.findIndex(b=>b.name===name);if(i>=0)beanMasters[i]=item;else beanMasters.push(item);localStorage.setItem(BEANS_KEY,JSON.stringify(beanMasters));$('beanMasterName').value='';$('beanMasterOrigin').value='';$('beanMasterVariety').value='';$('beanMasterProcess').value='';$('beanMasterShop').value='';renderBeanMasters();refreshBeanSelect(name);alert('生豆を登録しました。')}
+function deleteBeanMaster(i){if(!confirm(`「${beanMasters[i].name}」をマスターから削除しますか？過去の焙煎記録は削除されません。`))return;beanMasters.splice(i,1);localStorage.setItem(BEANS_KEY,JSON.stringify(beanMasters));renderBeanMasters();refreshBeanSelect()}
+function newRecord(){editing=null;$('formTitle').textContent='新しい焙煎を記録';['roasted','aroma','notes','favorite'].forEach(x=>$(x).value='');['green','roasted','temp','fan','duration','first'].forEach(x=>$(x).value='');['greenCustom','roastedCustom'].forEach(x=>{$(x).value='';$(x).classList.add('hidden')});$('date').value=new Date().toISOString().slice(0,10);$('crack').value='未記録';$('roastLevel').value='';$('roastPhoto').value='';$('photoPreview').style.display='none';$('roastResult').textContent='写真を選ぶと焙煎度合いを推定します。';$('roastConfidence').textContent='写真判定後に確信度を表示します。';$('roastConfidence').dataset.value='';refreshBeanSelect();['acidity','bitterness','sweetness','body'].forEach(x=>$(x).value=3);updateLoss();show('entry')}
+function getPick(id){return $(id).value==='その他'?$(id+'Custom').value:$(id).value}
+function saveRecord(){let bean=$('bean').value;if(!bean){alert('生豆を選択してください。設定画面で登録できます。');return}let green=+getPick('green')||0,roasted=+getPick('roasted')||0;let master=beanMasters.find(b=>b.name===bean)||{};let r={id:editing||Date.now(),date:$('date').value,bean,beanShop:master.shop||'',green,roasted,temp:$('temp').value,fan:$('fan').value,duration:$('duration').value,first:$('first').value,crack:$('crack').value,roastLevel:$('roastLevel').value,roastConfidence:$('roastConfidence').dataset.value||'',aroma:$('aroma').value,acidity:+$('acidity').value,bitterness:+$('bitterness').value,sweetness:+$('sweetness').value,body:+$('body').value,favorite:$('favorite').value,notes:$('notes').value};let i=records.findIndex(x=>x.id===r.id);if(i>=0)records[i]=r;else records.unshift(r);localStorage.setItem(KEY,JSON.stringify(records));show('home')}
+function updateLoss(){let g=+getPick('green'),r=+getPick('roasted');$('loss').textContent=g>0&&r>0?'重量減少率：'+((g-r)/g*100).toFixed(1)+'%':'重量減少率：—'}
 function pct(r){return r.green>0&&r.roasted>0?((r.green-r.roasted)/r.green*100):null}
-function card(r){let p=pct(r);return `<div class="record"><div class="bean">☕</div><div><b>${esc(r.bean)}</b><p>${esc(r.date||'日付なし')} ・ ${r.green||'—'}g → ${r.roasted||'—'}g</p><p>温度 ${esc(r.temp||'—')} / 風力 ${esc(r.fan||'—')} ・ ${esc(r.duration||'時間未入力')}</p></div><div class="right">${p===null?'—':p.toFixed(1)+'%'}<br><span class="small">減少率</span></div></div>`}
+function card(r){let p=pct(r),id=JSON.stringify(String(r.id));return `<div class="record tappable" role="button" tabindex="0" onclick='openRecord(${id})' onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openRecord(${id})}"><div class="bean">☕</div><div><b>${esc(r.bean)}</b><p>${esc(r.date||'日付なし')} ・ ${r.green||'—'}g → ${r.roasted||'—'}g</p><p>温度 ${esc(r.temp||'—')} / 風量 ${esc(r.fan||'—')} ・ ${esc(r.duration||'時間未入力')}</p><p>${esc(r.roastLevel||'焙煎度未判定')} ・ ${r.favorite?'★'.repeat(Number(r.favorite))+'☆'.repeat(5-Number(r.favorite)):'未評価'}</p><p class="small">タップして詳細を見る</p></div><div class="right">${p===null?'—':p.toFixed(1)+'%'}<br><span class="small">減少率</span></div></div>`}
+function openRecord(id){let r=records.find(x=>String(x.id)===String(id));if(!r)return;let p=pct(r),stars=r.favorite?'★'.repeat(Number(r.favorite))+'☆'.repeat(5-Number(r.favorite)):'未評価';let master=beanMasters.find(b=>b.name===r.bean)||{};let rows=[['焙煎日',r.date],['生豆',r.bean],['購入ショップ',r.beanShop||master.shop],['産地・品種', [master.origin,master.variety].filter(Boolean).join(' / ')],['精製方法',master.process],['生豆重量',r.green? r.green+' g':'未記録'],['焙煎後重量',r.roasted?r.roasted+' g':'未記録'],['重量減少率',p===null?'未計算':p.toFixed(1)+'%'],['温度設定',r.temp],['風量設定',r.fan],['焙煎時間',r.duration],['1ハゼ開始',r.first],['1ハゼの様子',r.crack],['焙煎度合い',r.roastLevel],['写真判定の確信度',r.roastConfidence],['香り・印象',r.aroma],['酸味',r.acidity],['苦味',r.bitterness],['甘み',r.sweetness],['コク',r.body],['お気に入り度',stars]];$('recordDetail').innerHTML=rows.filter(x=>x[1]!==undefined&&x[1]!==null&&x[1]!=='').map(x=>`<div class="detail-row"><b>${esc(x[0])}</b><span>${esc(x[1])}</span></div>`).join('')+`<div class="detail-notes"><b>試飲メモ</b><p>${r.notes?esc(r.notes).replace(/\n/g,'<br>'):'メモは入力されていません。'}</p></div>`;show('detail')}
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function render(){$('count').textContent=records.length;$('beans').textContent=new Set(records.map(r=>r.bean)).size;$('recent').innerHTML=records.length?records.slice(0,5).map(card).join(''):'<div class="empty">まだ記録がありません。最初の焙煎を残してみましょう。</div>';$('allRecords').innerHTML=records.length?records.map(card).join(''):'<div class="empty">記録がありません</div>';let valid=records.map(pct).filter(x=>x!==null);$('lossSummary').textContent=valid.length?`記録 ${valid.length} 件の平均重量減少率は ${ (valid.reduce((a,b)=>a+b,0)/valid.length).toFixed(1)}% です。豆の種類や焙煎条件をそろえて比較すると、より参考になります。`:'重量を入力した記録がまだありません。';let latest=records[0];$('aiAdvice').textContent=latest?advice(latest):'まずは焙煎記録を保存してください。'}
 function advice(r){let p=pct(r),s=[];if(p!==null)s.push(`今回の重量減少率は${p.toFixed(1)}%です。`);if(!r.first)s.push('次回は1ハゼ開始時間も記録すると、焙煎の進み方を比較しやすくなります。');if(r.acidity>=4)s.push('酸味が高めの評価です。次回は他の条件を固定し、焙煎時間などを一つだけ変えて味の変化を確認しましょう。');if(r.bitterness>=4)s.push('苦味が高めの評価です。投入量・焙煎時間・火力の記録を揃え、条件を一つずつ比較するのがおすすめです。');if(s.length===1)s.push('同じ豆で条件を一つずつ変え、試飲結果とセットで比較してみましょう。');return s.join(' ')}
-function exportCSV(){let cols=['date','bean','green','roasted','temp','fan','duration','first','crack','aroma','acidity','bitterness','sweetness','body','notes'];let csv=[cols.join(','),...records.map(r=>cols.map(k=>'"'+String(r[k]??'').replace(/"/g,'""')+'"').join(','))].join('\n');let a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv'}));a.download='roast-note-records.csv';a.click();URL.revokeObjectURL(a.href)}
-['green','roasted'].forEach(id=>$(id).addEventListener('input',()=>{let g=+$('green').value,r=+$('roasted').value;$('loss').textContent=g>0&&r>0?'重量減少率：'+((g-r)/g*100).toFixed(1)+'%':'重量減少率：—'}));
-render();
+
+const ROAST_LEVELS=['ライトロースト','シナモンロースト','ミディアムロースト','ハイロースト','シティロースト','フルシティロースト','フレンチロースト','イタリアンロースト'];
+let photoDataUrl='';
+function analyzeRoastPhoto(){let img=$('photoPreview');if(!img.naturalWidth){$('roastResult').textContent='先に焙煎豆の写真を選んでください。';return}let c=document.createElement('canvas'),ctx=c.getContext('2d',{willReadFrequently:true});let w=180,h=Math.round(180*img.naturalHeight/img.naturalWidth);if(h>180){h=180;w=Math.round(180*img.naturalWidth/img.naturalHeight)}c.width=w;c.height=h;ctx.drawImage(img,0,0,w,h);let d=ctx.getImageData(0,0,w,h).data,vals=[],reds=[],greens=[],blues=[];
+ // 無地背景を避けるため、茶色寄りで一定以上暗い画素を豆候補として抽出
+ for(let y=Math.floor(h*.12);y<Math.ceil(h*.88);y+=2)for(let x=Math.floor(w*.12);x<Math.ceil(w*.88);x+=2){let i=(y*w+x)*4,r=d[i],g=d[i+1],b=d[i+2],max=Math.max(r,g,b),min=Math.min(r,g,b),lum=.2126*r+.7152*g+.0722*b;if(lum>22&&lum<205&&r>=g*.88&&r>=b*1.02&&(max-min)>8){vals.push(lum);reds.push(r);greens.push(g);blues.push(b)}}
+ if(vals.length<35){$('roastResult').textContent='豆の色を十分に読み取れませんでした。白〜グレーの無地の上に豆を広げ、明るい場所でもう一度撮影してください。';$('roastConfidence').textContent='判定できません';$('roastConfidence').dataset.value='';return}
+ vals.sort((a,b)=>a-b);let median=vals[Math.floor(vals.length/2)],idx=median>=151?0:median>=137?1:median>=123?2:median>=109?3:median>=95?4:median>=80?5:median>=64?6:7;let spread=vals[Math.floor(vals.length*.8)]-vals[Math.floor(vals.length*.2)];let confidence=vals.length>500&&spread<48?'高め':vals.length>180&&spread<65?'中程度':'低め';let level=ROAST_LEVELS[idx];$('roastLevel').value=level;$('roastConfidence').textContent='写真からの推定確信度：'+confidence+'（参考値）';$('roastConfidence').dataset.value=confidence;$('roastResult').innerHTML=`推定結果：<strong>${level}</strong><br><span class="small">豆の色の明るさをもとにした簡易判定です。照明や背景で変わるため、必要なら下の選択欄で修正してください。</span>`;
+}
+$('roastPhoto').addEventListener('change',e=>{let f=e.target.files&&e.target.files[0];if(!f)return;let url=URL.createObjectURL(f);$('photoPreview').onload=()=>{analyzeRoastPhoto();URL.revokeObjectURL(url)};$('photoPreview').src=url;$('photoPreview').style.display='block'});
+$('reanalyzePhoto').addEventListener('click',analyzeRoastPhoto);
+
+function downloadBlob(blob,name){let url=URL.createObjectURL(blob);let a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500)}
+function backupJSON(){let payload={app:'Roast Note',formatVersion:2,createdAt:new Date().toISOString(),records,beanMasters};let blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});let stamp=new Date().toISOString().slice(0,10);downloadBlob(blob,`roast-note-backup-${stamp}.json`);localStorage.setItem(BACKUP_KEY,payload.createdAt);renderBackupStatus();alert('バックアップファイルを作成しました。共有・ダウンロードの画面で「ファイルに保存」を選び、保存先にiCloud Driveを指定してください。')}
+function renderBackupStatus(){let v=localStorage.getItem(BACKUP_KEY);$('backupStatus').textContent='この端末でバックアップを作成した日時：'+(v?new Date(v).toLocaleString('ja-JP'):'まだありません')}
+$('backupFile').addEventListener('change',async e=>{let file=e.target.files&&e.target.files[0];if(!file)return;try{let data=JSON.parse(await file.text());let incoming=Array.isArray(data)?data:data.records;if(!Array.isArray(incoming))throw new Error('形式');if(!incoming.every(r=>r&&typeof r==='object'&&r.bean!==undefined))throw new Error('内容');let mode=confirm(`バックアップ内に ${incoming.length} 件の記録があります。\n\nOK：現在の記録をバックアップ内容で置き換える\nキャンセル：現在の記録に追加・統合する`);if(mode){if(!confirm('現在の記録を置き換えます。よろしいですか？'))return;records=incoming}else{let map=new Map(records.map(r=>[String(r.id),r]));incoming.forEach(r=>map.set(String(r.id),r));records=Array.from(map.values()).sort((a,b)=>(Number(b.id)||0)-(Number(a.id)||0))}localStorage.setItem(KEY,JSON.stringify(records));if(!Array.isArray(data)&&Array.isArray(data.beanMasters)){beanMasters=data.beanMasters;localStorage.setItem(BEANS_KEY,JSON.stringify(beanMasters));refreshBeanSelect();renderBeanMasters()}alert('復元しました。');render();show('home')}catch(err){alert('バックアップファイルを読み込めませんでした。Roast NoteのJSONバックアップを選んでください。')}finally{e.target.value=''}});
+function exportCSV(){let cols=['date','bean','green','roasted','temp','fan','duration','first','crack','roastLevel','roastConfidence','aroma','acidity','bitterness','sweetness','body','notes'];let csv=[cols.join(','),...records.map(r=>cols.map(k=>'"'+String(r[k]??'').replace(/"/g,'""')+'"').join(','))].join('\n');downloadBlob(new Blob(['\ufeff'+csv],{type:'text/csv'}),'roast-note-records.csv')}
+setupPickers();['green','roasted'].forEach(id=>$(id).addEventListener('change',updateLoss));['greenCustom','roastedCustom'].forEach(id=>$(id).addEventListener('input',updateLoss));refreshBeanSelect();renderBeanMasters();
+render();renderBackupStatus();
 if('serviceWorker' in navigator && location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js').catch(()=>{});
 </script>
 </body></html>
