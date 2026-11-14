@@ -73,6 +73,13 @@ label{display:block;font-size:12px;color:var(--muted);margin:13px 0 6px}input,se
 <section id="analysis" class="view">
  <div class="section"><h2>焙煎分析</h2><span class="small">ROAST INSIGHTS</span></div>
  <div class="panel"><h3 style="margin-top:0;font-size:15px">重量減少率</h3><div id="lossSummary" class="advice">記録が増えると、重量減少率の傾向を確認できます。</div></div>
+ <div class="section"><h2>焙煎データの推移</h2><span class="small">ROAST TREND</span></div>
+ <div class="panel">
+  <p class="small">記録が増えるほど、自分の焙煎の傾向が見えてきます。豆の種類と項目を選んで推移を確認できます。</p>
+  <label>生豆</label><select id="trendBean"><option value="*">すべての生豆</option></select>
+  <label>グラフ項目</label><select id="trendMetric"><option value="loss">重量減少率（%）</option><option value="favorite">お気に入り度（1〜5）</option><option value="acidity">酸味（1〜5）</option><option value="bitterness">苦味（1〜5）</option><option value="sweetness">甘み（1〜5）</option><option value="body">コク（1〜5）</option></select>
+  <div id="trendChart" style="margin-top:14px"><p class="small">焙煎記録を保存するとグラフが表示されます。</p></div>
+ </div>
  <div class="section"><h2>焙煎結果を比較</h2><span class="small">COMPARE</span></div>
  <div class="panel">
   <p class="small">比較したい焙煎記録を2つ選んでください。同じ生豆の記録を比べると、条件や味の違いが分かりやすくなります。</p>
@@ -192,7 +199,28 @@ function compareRecords(){
  $('compareResult').innerHTML=html+'</tbody></table></div>';
 }
 
-function render(){renderCompareOptions();$('count').textContent=records.length;$('beans').textContent=new Set(records.map(r=>r.bean)).size;$('recent').innerHTML=records.length?records.slice(0,5).map(card).join(''):'<div class="empty">まだ記録がありません。最初の焙煎を残してみましょう。</div>';$('allRecords').innerHTML=records.length?records.map(card).join(''):'<div class="empty">記録がありません</div>';let valid=records.map(pct).filter(x=>x!==null);$('lossSummary').textContent=valid.length?`記録 ${valid.length} 件の平均重量減少率は ${ (valid.reduce((a,b)=>a+b,0)/valid.length).toFixed(1)}% です。豆の種類や焙煎条件をそろえて比較すると、より参考になります。`:'重量を入力した記録がまだありません。';let latest=records[0];$('aiAdvice').textContent=latest?advice(latest):'まずは焙煎記録を保存してください。'}
+function renderTrendGraph(){
+ let beanEl=$('trendBean'),metricEl=$('trendMetric'),chart=$('trendChart');if(!beanEl||!metricEl||!chart)return;
+ let selected=beanEl.value||'*',metric=metricEl.value||'loss';
+ let old=selected;beanEl.innerHTML='<option value="*">すべての生豆</option>'+beanMasters.map(x=>`<option value="${esc(x.name)}">${esc(x.name)}</option>`).join('');
+ if(Array.from(beanEl.options).some(o=>o.value===old))beanEl.value=old;else beanEl.value='*';
+ let labels={loss:'重量減少率',favorite:'お気に入り度',acidity:'酸味',bitterness:'苦味',sweetness:'甘み',body:'コク'};
+ let data=records.filter(r=>(beanEl.value==='*'||r.bean===beanEl.value)).map(r=>({date:r.date||'',bean:r.bean,value:metric==='loss'?pct(r):(r[metric]===undefined||r[metric]===null||r[metric]===''?NaN:Number(r[metric]))})).filter(x=>x.value!==null&&Number.isFinite(x.value)).sort((a,b)=>a.date.localeCompare(b.date));
+ if(!data.length){chart.innerHTML='<p class="small">この項目のデータがまだありません。重量減少率は生豆重量と焙煎後重量、お気に入り度・味の評価は記録時に入力してください。</p>';return}
+ let min=metric==='loss'?0:1,max=metric==='loss'?Math.max(20,Math.ceil(Math.max(...data.map(x=>x.value))/5)*5):5;
+ if(max===min)max=min+1;
+ const W=700,H=270,L=52,R=18,T=18,B=48,plotW=W-L-R,plotH=H-T-B;
+ const x=i=>data.length===1?L+plotW/2:L+i*plotW/(data.length-1);
+ const y=v=>T+(max-v)/(max-min)*plotH;
+ let grid='';for(let i=0;i<=4;i++){let v=max-(max-min)*i/4,yy=T+plotH*i/4;grid+=`<line x1="${L}" y1="${yy}" x2="${W-R}" y2="${yy}" stroke="#e8dfd2"/><text x="${L-9}" y="${yy+4}" text-anchor="end" font-size="11" fill="#82796d">${v.toFixed(metric==='loss'?0:1)}</text>`}
+ let points=data.map((d,i)=>`${x(i)},${y(d.value)}`).join(' ');
+ let circles=data.map((d,i)=>`<circle cx="${x(i)}" cy="${y(d.value)}" r="5" fill="#986b43"><title>${esc(d.date)}｜${esc(d.bean)}：${d.value.toFixed(1)}${metric==='loss'?'%':' / 5'}</title></circle>`).join('');
+ let dateLabels=data.map((d,i)=>data.length<=8||i===0||i===data.length-1?`<text x="${x(i)}" y="${H-17}" text-anchor="middle" font-size="10" fill="#82796d">${esc((d.date||'').slice(5)||'日付なし')}</text>`:'').join('');
+ chart.innerHTML=`<div style="font-size:12px;font-weight:600;margin-bottom:4px">${labels[metric]}の推移（${data.length}件）</div><div style="overflow-x:auto"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${labels[metric]}の推移グラフ" style="width:100%;min-width:300px;height:auto">${grid}<line x1="${L}" y1="${T+plotH}" x2="${W-R}" y2="${T+plotH}" stroke="#b8ad9f"/>${data.length>1?`<polyline points="${points}" fill="none" stroke="#986b43" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>`:''}${circles}${dateLabels}</svg></div><p class="small">※記録日順です。未入力の評価項目はグラフに含まれません。点をタップ／押すと詳細値を確認できます。</p>`;
+}
+$('trendBean').addEventListener('change',renderTrendGraph);$('trendMetric').addEventListener('change',renderTrendGraph);
+
+function render(){renderTrendGraph();renderCompareOptions();$('count').textContent=records.length;$('beans').textContent=new Set(records.map(r=>r.bean)).size;$('recent').innerHTML=records.length?records.slice(0,5).map(card).join(''):'<div class="empty">まだ記録がありません。最初の焙煎を残してみましょう。</div>';$('allRecords').innerHTML=records.length?records.map(card).join(''):'<div class="empty">記録がありません</div>';let valid=records.map(pct).filter(x=>x!==null);$('lossSummary').textContent=valid.length?`記録 ${valid.length} 件の平均重量減少率は ${ (valid.reduce((a,b)=>a+b,0)/valid.length).toFixed(1)}% です。豆の種類や焙煎条件をそろえて比較すると、より参考になります。`:'重量を入力した記録がまだありません。';let latest=records[0];$('aiAdvice').textContent=latest?advice(latest):'まずは焙煎記録を保存してください。'}
 function advice(r){let p=pct(r),s=[];if(p!==null)s.push(`今回の重量減少率は${p.toFixed(1)}%です。`);if(!r.first)s.push('次回は1ハゼ開始時間も記録すると、焙煎の進み方を比較しやすくなります。');if(r.acidity>=4)s.push('酸味が高めの評価です。次回は他の条件を固定し、焙煎時間などを一つだけ変えて味の変化を確認しましょう。');if(r.bitterness>=4)s.push('苦味が高めの評価です。投入量・焙煎時間・火力の記録を揃え、条件を一つずつ比較するのがおすすめです。');if(s.length===1)s.push('同じ豆で条件を一つずつ変え、試飲結果とセットで比較してみましょう。');return s.join(' ')}
 
 const ROAST_LEVELS=['ライトロースト','シナモンロースト','ミディアムロースト','ハイロースト','シティロースト','フルシティロースト','フレンチロースト','イタリアンロースト'];
